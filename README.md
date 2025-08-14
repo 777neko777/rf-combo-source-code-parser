@@ -1,5 +1,24 @@
 # RF Source Code Combos Parser (LTE / ENDC / NRCA)
 
+A **single HTML file** application for parsing Qualcomm RF combo source code.  
+**No installation, no build process** – just open `index.html` in your browser, paste the XML, and view it in a table format for quick inspection, filtering, and editing. You can also regenerate valid `<ca_combo>` entries from the edited table.  
+Supports **LTE / ENDC / NRCA** combo formats.
+
+## ✨ Features
+- Single-file deployment: run it offline or in internal networks
+- Supports LTE / ENDC / NRCA data models for parsing and building
+- Bilingual interface (Chinese/English) with automatic language detection
+- Column filtering, pagination, and batch blank-row insertion
+
+## 🚀 Quick Start
+1. Download or clone this repository.
+2. Open `index.html` in your browser.
+3. Paste your XML source (with `<ca_4g_combos>`, `<ca_4g_5g_combos>`, or `<ca_5g_combos>` tags) into the text box.
+4. View, filter, or edit in the table; regenerated XML will appear automatically.
+
+
+# RF Source Code Combos Parser (LTE / ENDC / NRCA)
+
 一个基于 **单个 HTML 文件** 即可运行的高通射频组合（RF combo）源码解析器。  
 **无需安装、无需构建**：直接打开 `index.html`，把 XML 片段粘贴进去，即可在表格中可视化、筛选、编辑，并反向生成标准片段，便于快速检查项目配置与查漏补缺。支持 **LTE / ENDC / NRCA**。
 
