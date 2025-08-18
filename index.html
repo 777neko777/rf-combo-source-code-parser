@@ -4,32 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LTE/ENDC Qualcomm Source Code Parser</title>
-    <!-- Tailwind (CDN) -->
+    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
-        theme: {
-          extend: {
-            boxShadow: {
-              glow: "0 0 40px -10px rgba(99,102,241,.45)",
-              glow2: "0 0 60px -20px rgba(236,72,153,.45)",
-            }
+        theme: { extend: {
+          boxShadow: {
+            glow: "0 0 40px -10px rgba(99,102,241,.45)",
+            glow2: "0 0 60px -20px rgba(236,72,153,.45)",
           }
-        }
+        } }
       }
     </script>
     <!-- React UMD -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <style>
-      /* --- Glassmorphism helpers --- */
       .glass{ background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(14px); }
-      .glass-soft{ background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.10); backdrop-filter: blur(10px); }
       .field{ background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); }
       .field:focus{ outline: none; box-shadow: 0 0 0 2px rgba(99,102,241,.5); border-color: rgba(255,255,255,.3); }
-      .btn{ transition: all .15s ease; }
-      .btn:hover{ background: rgba(255,255,255,.13); }
-      .btn:active{ transform: scale(.98); }
+      .btn{ transition: all .15s ease; } .btn:hover{ background: rgba(255,255,255,.13); } .btn:active{ transform: scale(.98); }
       code{ color:#c7d2fe; }
       ::-webkit-scrollbar{ height:10px; width:10px; }
       ::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.15); border-radius: 9999px; }
@@ -37,14 +31,14 @@
     </style>
   </head>
   <body class="bg-black text-slate-100">
-    <!-- Neon background glows -->
+    <!-- 背景装饰 -->
     <div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10">
       <div class="absolute -top-20 -left-24 h-[28rem] w-[28rem] rounded-full bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-rose-500 blur-3xl opacity-25"></div>
       <div class="absolute top-1/3 -right-24 h-[26rem] w-[26rem] rounded-full bg-gradient-to-br from-cyan-400 via-sky-500 to-indigo-600 blur-3xl opacity-20"></div>
       <div class="absolute bottom-[-6rem] left-1/4 h-[24rem] w-[24rem] rounded-full bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 blur-3xl opacity-15"></div>
     </div>
 
-    <div id="root" class="min-h-0"></div>
+    <div id="root"></div>
 
     <script>
       (function(){
@@ -52,7 +46,7 @@
         const { useState, useMemo, useEffect } = React;
         const h = React.createElement;
 
-        // ---------------- I18N ----------------
+        // -------------- I18N --------------
         const I18N = {
           zh: {
             title: 'LTE/ENDC Qualcomm Source Code Parser',
@@ -61,24 +55,17 @@
             runSelfTests: '运行自测',
             add20: '新增 20 行空白',
             summary: '数据汇总',
+            upload: '导入文件',
+            uploading: '选择 .xml 或 .txt',
             sumTitleLTE: 'LTE 数据汇总',
             sumTitleENDC: 'ENDC 数据汇总',
             sumTitleNRCA: 'NRCA 数据汇总',
-            sumCopy: '复制到剪贴板',
-            infoA: '表头支持按列筛选（输入关键字进行包含匹配，点击“清空筛选”恢复）。UL 支持多个（示例：',
-            infoB: '），对应的 UL MIMO 也按顺序聚合（示例：',
-            infoC: '）。编辑模式下：可新增空白行；空白行不会影响左侧生成，只有填写为合法格式的行才会参与生成。',
             thIndex: '#/筛选', thDLCombo: 'DL Combo', thDLMIMO: 'DL MIMO', thULCombo: 'UL Combo', thULMIMO: 'UL MIMO',
             clearFilters: '清空筛选', phDLCombo: '包含… 例: 41C', phDLMIMO: '包含… 例: 4+4', phULCombo: '包含… 例: 41C', phULMIMO: '包含… 例: 1+1',
-            cellPH_dlCombo: '例如 1A+1A+3C+28A', cellPH_dlMimo: '例如 4+4+4+4+4', cellPH_ulCombo: '例如 3A+28A（可空）', cellPH_ulMimo: '例如 1+1（可空）',
             prevPage: '上一页', nextPage: '下一页', perPage: '每页', rows: '行', pageXofY: (x,y)=> '第 '+x+' / '+y+' 页',
-            parseLabel: '解析:', buildLabel: '构建:', btnLangZh: '中文', btnLangEn: 'EN',
             modeLTE: 'LTE', modeENDC: 'ENDC', modeNRCA: 'NRCA',
             endcHeaders: ['LTE DL','LTE DL MIMO','NR DL','NR BW（MHz）','NR DL MIMO','LTE UL','NR UL','LTE UL MIMO','NR UL MIMO'],
-            phLTEdl:'例: 3A+41C', phLTEdlM:'例: 4+2+2', phNRdl:'例: n78C 或 n7A+n78A', phNRbw:'例: 100+20', phNRdlM:'例: 4+4', phLTEul:'例: 7A', phNRul:'例: n78A', phLTEulM:'例: 1', phNRulM:'例: 1',
-            nrcaHeaders: ['NR DL','DL MIMO','BW（MHz）','NR UL','UL MIMO','Power Class','SRS ANT SWITCH'],
-            phNRdl_only:'例: n1A-n5A-n7A', phDLmimo_only:'例: 4+4+4', phNRbw_only:'例: 50+25+50', phNRul_only:'例: n1A-n3A', phULmimo_only:'例: 1+1', phPC:'例: 1.5', phSRS:'例: N78:SRS_T1_T2_R4',
-            // Summary labels
+            nrcaHeaders: ['NR DL','DL MIMO','BW（MHz）','NR UL','UL MIMO','Power Class','SRS ANT SWITCH','Tx Switching'],
             lt_total_dl_mimo_layers: 'total dl mimo layers（DL MIMO 最大总层数）',
             lt_max_dl_ccs: 'max dl ccs（DL 载波数最大）',
             lt_4x4_bands: '4x4 mimo band（任意组合中最大 MIMO=4 的 LTE 频段）',
@@ -86,9 +73,12 @@
             nr_total_bw: 'total bw support（BW 最大总和, MHz）',
             nr_max_dl_ccs: 'max dl ccs（DL 载波数最大）',
             nr_max_pc: 'max power class（最大功率等级）',
-            nr_ul_mimo_band2: 'nr ul mimo band（UL MIMO = 2 对应的 NR 频段）',
+            nr_ul_mimo_band2: 'nr ul mimo band（UL MIMO = 2 的 NR 频段）',
             nr_6rx_bands: '6rx band（DL MIMO = 6 的 NR 频段）',
             sumNothing: '无可统计的数据（请先粘贴源码或清空筛选条件）',
+            modalClose: '关闭',
+            modalCopy: '复制',
+            copied: '已复制到剪贴板',
           },
           en: {
             title: 'LTE/ENDC Qualcomm Source Code Parser',
@@ -97,23 +87,17 @@
             runSelfTests: 'Run Self Tests',
             add20: 'Add 20 Blank Rows',
             summary: 'Summary',
+            upload: 'Upload File',
+            uploading: 'Choose .xml or .txt',
             sumTitleLTE: 'LTE Summary',
             sumTitleENDC: 'ENDC Summary',
             sumTitleNRCA: 'NRCA Summary',
-            sumCopy: 'Copy',
-            infoA: 'Table header supports column filtering (type keyword for partial match, click "Clear Filters" to reset). UL supports multiple entries (e.g.: ',
-            infoB: '), and corresponding UL MIMO is aggregated in order (e.g.: ',
-            infoC: '). In edit mode: you can add blank rows; blank rows won’t affect generation—only valid rows are included.',
             thIndex: '#/Filter', thDLCombo: 'DL Combo', thDLMIMO: 'DL MIMO', thULCombo: 'UL Combo', thULMIMO: 'UL MIMO',
             clearFilters: 'Clear Filters', phDLCombo: 'Contains… e.g. 41C', phDLMIMO: 'Contains… e.g. 4+4', phULCombo: 'Contains… e.g. 41C', phULMIMO: 'Contains… e.g. 1+1',
-            cellPH_dlCombo: 'e.g. 1A+1A+3C+28A', cellPH_dlMimo: 'e.g. 4+4+4+4+4', cellPH_ulCombo: 'e.g. 3A+28A (optional)', cellPH_ulMimo: 'e.g. 1+1 (optional)',
             prevPage: 'Previous Page', nextPage: 'Next Page', perPage: 'Per page', rows: 'rows', pageXofY: (x,y)=> 'Page '+x+' / '+y,
-            parseLabel: 'Parse:', buildLabel: 'Build:', btnLangZh: '中文', btnLangEn: 'EN',
             modeLTE: 'LTE', modeENDC: 'ENDC', modeNRCA: 'NRCA',
             endcHeaders: ['LTE DL','LTE DL MIMO','NR DL','NR BW (MHz)','NR DL MIMO','LTE UL','NR UL','LTE UL MIMO','NR UL MIMO'],
-            phLTEdl:'e.g. 3A+41C', phLTEdlM:'e.g. 4+2+2', phNRdl:'e.g. n78C or n7A+n78A', phNRbw:'e.g. 100+20', phNRdlM:'e.g. 4+4', phLTEul:'e.g. 7A', phNRul:'e.g. n78A', phLTEulM:'e.g. 1', phNRulM:'e.g. 1',
-            nrcaHeaders: ['NR DL','DL MIMO','BW (MHz)','NR UL','UL MIMO','Power Class','SRS ANT SWITCH'],
-            phNRdl_only:'e.g. n1A-n5A-n7A', phDLmimo_only:'e.g. 4+4+4', phNRbw_only:'e.g. 50+25+50', phNRul_only:'e.g. n1A-n3A', phULmimo_only:'e.g. 1+1', phPC:'e.g. 1.5', phSRS:'e.g. N78:SRS_T1_T2_R4',
+            nrcaHeaders: ['NR DL','DL MIMO','BW (MHz)','NR UL','UL MIMO','Power Class','SRS ANT SWITCH','Tx Switching'],
             lt_total_dl_mimo_layers: 'total dl mimo layers (max sum of DL MIMO)',
             lt_max_dl_ccs: 'max dl ccs (max number of DL carriers)',
             lt_4x4_bands: '4x4 mimo band (LTE bands whose max MIMO=4)',
@@ -123,7 +107,10 @@
             nr_max_pc: 'max power class',
             nr_ul_mimo_band2: 'nr ul mimo band (bands where UL MIMO = 2)',
             nr_6rx_bands: '6rx band (bands where DL MIMO = 6)',
-            sumNothing: 'No data to summarize (paste source or clear filters).'
+            sumNothing: 'No data to summarize (paste source or clear filters).',
+            modalClose: 'Close',
+            modalCopy: 'Copy',
+            copied: 'Copied to clipboard',
           }
         };
         const getInitialLang = ()=>{
@@ -133,14 +120,14 @@
           return nav.startsWith('zh') ? 'zh' : 'en';
         };
 
-        // ---------------- Shared Helpers ----------------
+        // -------------- Helpers --------------
         const TRIM = (s) => (s || '').replace(/^[\s\uFEFF\u200B]+|[\s\uFEFF\u200B]+$/g, '');
         const CC_COUNT = { A:1, B:2, C:2, D:3, E:4, F:5 };
         const tokenRE = /^(\d+)([A-F])$/i;
         const splitPlus = (s)=>{ s = TRIM(s); return s? s.split('+').map(TRIM).filter(Boolean) : []; };
         const splitDash = (s)=>{ s = TRIM(s); return s? s.split('-').map(TRIM).filter(Boolean) : []; };
 
-        // ---------------- LTE Parser / Builder ----------------
+        // -------------- LTE 解析/生成（与先前一致） --------------
         function parseLTE(segRaw){
           const seg = TRIM(segRaw);
           const re = /^B(\d+)([A-F])\[([^\]]*)\](?:;([A-F])\[([^\]]*)\])?$/i;
@@ -221,22 +208,22 @@
           return ['<ca_4g_combos>', ...lines, '</ca_4g_combos>'].join('\n');
         }
 
-        // ---------------- NR / ENDC Shared ----------------
-        const nrDLRe = /^N(\d+)([A-F])\[((?:\d+x\d+)(?:,\d+x\d+)*)\](?:;([A-F])\[((?:\d+x\d+)(?:,\d+x\d+)*)\])?$/i;
+        // -------------- NR / ENDC 共用解析（含 UL-only） --------------
+        const nrFlexRe = /^N(\d+)(?:([A-F])\[((?:\d+x\d+)(?:,\d+x\d+)*)\]|_)?(?:;([A-F])\[((?:\d+x\d+)(?:,\d+x\d+)*)\])?$/i;
         function parseNR(segRaw){
           const seg = TRIM(segRaw);
-          const m = seg.match(nrDLRe); if(!m) throw new Error('Cannot parse NR segment: '+seg);
+          const m = seg.match(nrFlexRe); if(!m) throw new Error('Cannot parse NR segment: '+seg);
           const band = parseInt(m[1],10);
-          const dlLetter = m[2].toUpperCase();
-          const bwPairs = m[3].split(',').map(x=>{ const [bw,mimo] = x.split('x').map(y=>TRIM(y)); return { bw: parseInt(bw,10), mimo: parseInt(mimo,10) }; });
-          const need = CC_COUNT[dlLetter]||1; if(bwPairs.length!==need) throw new Error('NR DL pairs count mismatch, expected '+need+', got '+bwPairs.length);
+          const dlLetter = m[2] ? m[2].toUpperCase() : undefined;
+          const dlPairs = m[2] ? m[3].split(',').map(x=>{ const [bw,mimo] = x.split('x').map(y=>TRIM(y)); return { bw: parseInt(bw,10), mimo: parseInt(mimo,10) }; }) : [];
+          if(dlLetter){ const need = CC_COUNT[dlLetter]||1; if(dlPairs.length!==need) throw new Error('NR DL pairs count mismatch, expected '+need+', got '+dlPairs.length); }
           const ulLetter = m[4] ? m[4].toUpperCase() : undefined;
-          const ulPairs = m[5] ? m[5].split(',').map(x=>{ const [bw,mimo] = x.split('x').map(y=>TRIM(y)); return { bw: parseInt(bw,10), mimo: parseInt(mimo,10) }; }) : undefined;
-          if(ulLetter){ const needU = CC_COUNT[ulLetter]||1; if(!ulPairs || ulPairs.length!==needU) throw new Error('NR UL pairs count mismatch'); }
-          return { kind:'NR', band, dlLetter, dlPairs:bwPairs, ulLetter, ulPairs };
+          const ulPairs = m[5] ? m[5].split(',').map(x=>{ const [bw,mimo] = x.split('x').map(y=>TRIM(y)); return { bw: parseInt(bw,10), mimo: parseInt(mimo,10) }; }) : [];
+          if(ulLetter){ const needU = CC_COUNT[ulLetter]||1; if(ulPairs.length!==needU) throw new Error('NR UL pairs count mismatch'); }
+          return { kind:'NR', band, dlLetter, dlPairs, ulLetter, ulPairs };
         }
 
-        // ---------------- ENDC Parser / Builder ----------------
+        // -------------- ENDC --------------
         function parseENDCInner(inner){
           const parts = inner.split('+').map(TRIM).filter(Boolean);
           const segments = [];
@@ -265,22 +252,23 @@
           const lteUlSegs = lteSegs.filter(s=> !!s.ulLetter);
           const lteUl = lteUlSegs.map(s=> s.band+''+s.ulLetter).join('+');
           const lteUlM = [].concat.apply([], lteUlSegs.map(s=> s.ulLayers||[])).join('+');
-          const nrDlTokens = nrSegs.map(s=> 'n'+s.band+s.dlLetter).join('+');
-          const nrBw = nrSegs.map(s=> s.dlPairs.map(p=> String(p.bw)).join('+')).join('+');
-          const nrDlM = nrSegs.map(s=> s.dlPairs.map(p=> String(p.mimo)).join('+')).join('+');
+
+          const nrDlTokens = nrSegs.filter(s=> !!s.dlLetter).map(s=> 'n'+s.band+s.dlLetter).join('+');
+          const nrBw = nrSegs.filter(s=> !!s.dlLetter).map(s=> s.dlPairs.map(p=> String(p.bw)).join('+')).join('+');
+          const nrDlM = nrSegs.filter(s=> !!s.dlLetter).map(s=> s.dlPairs.map(p=> String(p.mimo)).join('+')).join('+');
           const nrUlTokens = nrSegs.filter(s=> !!s.ulLetter).map(s=> 'n'+s.band+s.ulLetter).join('+');
           const nrUlM = nrSegs.filter(s=> !!s.ulLetter).map(s=> s.ulPairs.map(p=> String(p.mimo)).join('+')).join('+');
+
           return { lteDl, lteDlM, nrDl:nrDlTokens, nrBw, nrDlM, lteUl, nrUl:nrUlTokens, lteUlM:lteUlM, nrUlM:nrUlM };
         }
         function rowToSegmentsENDC(row){
           const segs = [];
           const lteSegs = rowToSegmentsLTE({ dlCombo:row.lteDl||'', dlMimo:row.lteDlM||'', ulCombo:row.lteUl||'', ulMimo:row.lteUlM||'' }); lteSegs.forEach(s=> segs.push(s));
+
           const nrDlKeys = splitPlus(row.nrDl||'');
           const nrDlMimos = splitPlus(row.nrDlM||'').map(x=>parseInt(x,10));
           const nrBws = splitPlus((row.nrBw||'')).map(x=>parseInt(x,10));
           let mimoPtr = 0; let bwPtr = 0;
-          const nrUlKey = TRIM(row.nrUl||'');
-          const nrUlMimos = splitPlus(row.nrUlM||'').map(x=>parseInt(x,10));
           nrDlKeys.forEach((key)=>{
             const m = key.match(/^n(\d+)([A-F])$/i); if(!m) throw new Error('Invalid NR DL token: '+key);
             const band = parseInt(m[1],10); const dlLetter = m[2].toUpperCase(); const need = CC_COUNT[dlLetter]||1;
@@ -289,20 +277,48 @@
               if(bwPtr>=nrBws.length || mimoPtr>=nrDlMimos.length) throw new Error('NR DL BW/MIMO not enough for '+key);
               pairs.push({ bw:nrBws[bwPtr++], mimo:nrDlMimos[mimoPtr++] });
             }
-            const seg = { kind:'NR', band, dlLetter, dlPairs:pairs, ulLetter:undefined, ulPairs:undefined };
-            segs.push(seg);
+            segs.push({ kind:'NR', band, dlLetter, dlPairs:pairs, ulLetter:undefined, ulPairs:undefined });
           });
-          if(nrUlKey){
-            const mu = nrUlKey.match(/^n(\d+)([A-F])$/i); if(!mu) throw new Error('Invalid NR UL token: '+nrUlKey);
-            const uBand = parseInt(mu[1],10); const uLetter = mu[2].toUpperCase(); const needU = CC_COUNT[uLetter]||1;
-            const target = segs.find(s=> s.kind==='NR' && s.band===uBand) || segs.find(s=> s.kind==='NR');
-            if(target){ const uPairs = []; for(let i=0;i<needU;i++){ const bw = (target.dlPairs[i]||target.dlPairs[0]).bw; const mimo = nrUlMimos[i]!=null ? nrUlMimos[i] : 1; uPairs.push({ bw, mimo }); } target.ulLetter = uLetter; target.ulPairs = uPairs; }
-          }
+
+          const nrUlKeys = splitPlus(row.nrUl||'');
+          const nrUlMimos = splitPlus(row.nrUlM||'').map(x=>parseInt(x,10));
+          let uptr = 0;
+          nrUlKeys.forEach(uk=>{
+            const m = uk.match(/^n(\d+)([A-F])$/i); if(!m) throw new Error('Invalid NR UL token: '+uk);
+            const band = parseInt(m[1],10); const uletter = m[2].toUpperCase(); const needU = CC_COUNT[uletter]||1;
+            let target = segs.find(s=> s.kind==='NR' && s.band===band);
+            if(!target){
+              // UL-only（SUL）：创建无 DL 的 NR 片段
+              target = { kind:'NR', band, dlLetter:undefined, dlPairs:[], ulLetter:undefined, ulPairs:[] };
+              segs.push(target);
+            }
+            const uPairs = [];
+            for(let i=0;i<needU;i++){
+              const mimo = nrUlMimos[uptr]!=null ? nrUlMimos[uptr] : 1; uptr++;
+              const bw = target.dlPairs[i]?.bw ?? target.dlPairs[0]?.bw ?? 0;
+              uPairs.push({ bw, mimo });
+            }
+            target.ulLetter = uletter;
+            target.ulPairs = uPairs;
+          });
+          if(uptr!==splitPlus(row.nrUlM||'').length) { /* 容错：多余值忽略 */ }
           return segs;
         }
         function segmentsToSourceENDC(segments){
           const lte = segmentsToSourceLTE(segments);
-          const nr = segments.filter(s=>s.kind==='NR').map(s=>{ const dl = 'N'+s.band+s.dlLetter+'['+ s.dlPairs.map(p=> p.bw+'x'+p.mimo).join(',') +']'; const ul = s.ulLetter ? (';'+s.ulLetter+'['+ (s.ulPairs||[]).map(p=> p.bw+'x'+p.mimo).join(',') +']') : ''; return dl+ul; }).join('+');
+          const nr = segments.filter(s=>s.kind==='NR').map(s=>{
+            if(!s.dlLetter && s.ulLetter){
+              const arr = (s.ulPairs||[]).map(p=> p.bw+'x'+p.mimo).join(',');
+              return 'N'+s.band+'_;'+s.ulLetter+'['+arr+']';
+            }
+            const dl = 'N'+s.band+s.dlLetter+'['+ s.dlPairs.map(p=> p.bw+'x'+p.mimo).join(',') +']';
+            let ul = '';
+            if(s.ulLetter){
+              const arr = (s.ulPairs||[]).map(p=> p.bw+'x'+p.mimo).join(',');
+              ul = ';'+s.ulLetter+'['+arr+']';
+            }
+            return dl+ul;
+          }).join('+');
           if(lte && nr) return lte+'+'+nr; else return lte||nr||'';
         }
         function buildXMLFromRowsENDC(rows){
@@ -315,7 +331,7 @@
           return ['<ca_4g_5g_combos>', ...lines, '</ca_4g_5g_combos>'].join('\n');
         }
 
-        // ---------------- NRCA Parser / Builder ----------------
+        // -------------- NRCA --------------
         function parseNRCAInner(inner){
           const parts = inner.split('+').map(TRIM).filter(Boolean);
           const segments = []; parts.forEach(p=>{ if(/^N\d+/i.test(p)) segments.push(parseNR(p)); else if(/^B\d+/i.test(p)) segments.push({kind:'LTE'}); else throw new Error('Unknown segment: '+p); });
@@ -331,11 +347,13 @@
               const hasLTE = segs.some(s=>s.kind==='LTE');
               const hasNR = segs.some(s=>s.kind==='NR');
               if(hasNR && !hasLTE){
-                // capture optional attributes
-                const pcMatch = attrs.match(/\bpc\s*=\s*"([^"]*)"/i); const srsMatch = attrs.match(/\bsrs_ant_switch\s*=\s*"([^"]*)"/i);
+                const pcMatch = attrs.match(/\bpc\s*=\s*"([^"]*)"/i);
+                const srsMatch = attrs.match(/\bsrs_ant_switch\s*=\s*"([^"]*)"/i);
+                const txMatch = attrs.match(/\btx_switching\s*=\s*"([^"]*)"/i);
                 const pc = pcMatch? pcMatch[1] : '';
                 const srs = srsMatch? srsMatch[1] : '';
-                items.push({ inner, segments: segs, pc, srs });
+                const tx  = txMatch?  txMatch[1]  : '';
+                items.push({ inner, segments: segs, pc, srs, tx });
               }
             }catch{}
           }
@@ -343,13 +361,13 @@
         }
         function segmentsToRowNRCA(item){
           const segments = item.segments.filter(s=>s.kind==='NR');
-          const nrDl = segments.map(s=> 'n'+s.band+s.dlLetter).join('-');
-          const dlM = segments.map(s=> s.dlPairs.map(p=> String(p.mimo)).join('+')).join('+');
-          const bw = segments.map(s=> s.dlPairs.map(p=> String(p.bw)).join('+')).join('+');
+          const nrDl = segments.filter(s=> !!s.dlLetter).map(s=> 'n'+s.band+s.dlLetter).join('-');
+          const dlM = segments.filter(s=> !!s.dlLetter).map(s=> s.dlPairs.map(p=> String(p.mimo)).join('+')).join('+');
+          const bw  = segments.filter(s=> !!s.dlLetter).map(s=> s.dlPairs.map(p=> String(p.bw)).join('+')).join('+');
           const ulSegs = segments.filter(s=> !!s.ulLetter);
           const nrUl = ulSegs.map(s=> 'n'+s.band+s.ulLetter).join('-');
           const ulM = ulSegs.map(s=> s.ulPairs.map(p=> String(p.mimo)).join('+')).join('+');
-          return { nrDl, dlM, bw, nrUl, ulM, pc:item.pc||'', srs:item.srs||'' };
+          return { nrDl, dlM, bw, nrUl, ulM, pc:item.pc||'', srs:item.srs||'', tx:item.tx||'' };
         }
         function rowToSegmentsNRCA(row){
           const nrKeys = splitDash(row.nrDl||'');
@@ -365,34 +383,58 @@
           const nrULKeys = splitDash(row.nrUl||''); const ulM = splitPlus(row.ulM||'').map(x=>parseInt(x,10)); let up=0;
           nrULKeys.forEach(k=>{
             const m = k.match(/^n(\d+)([A-F])$/i); if(!m) throw new Error('Invalid NR UL token: '+k);
-            const band=parseInt(m[1],10), letter=m[2].toUpperCase(); const need=CC_COUNT[letter]||1; const tgt=segs.find(s=>s.band===band) || segs[0];
-            if(tgt){ const pairs=[]; for(let i=0;i<need;i++){ const bw=(tgt.dlPairs[i]||tgt.dlPairs[0]).bw; const mimoVal = ulM[up]!=null? ulM[up]:1; up++; pairs.push({bw, mimo:mimoVal}); } tgt.ulLetter=letter; tgt.ulPairs=pairs; }
+            const band=parseInt(m[1],10), letter=m[2].toUpperCase(); const need=CC_COUNT[letter]||1; let tgt=segs.find(s=>s.band===band);
+            if(!tgt){ // UL-only：创建无 DL 的 NR 片段
+              tgt = { kind:'NR', band, dlLetter:undefined, dlPairs:[], ulLetter:undefined, ulPairs:[] };
+              segs.push(tgt);
+            }
+            const pairs=[]; for(let i=0;i<need;i++){ const mimoVal = ulM[up]!=null? ulM[up]:1; up++; const bw = tgt.dlPairs[i]?.bw ?? tgt.dlPairs[0]?.bw ?? 0; pairs.push({bw, mimo:mimoVal}); }
+            tgt.ulLetter=letter; tgt.ulPairs=pairs;
           });
           return segs;
         }
         function segmentsToSourceNRCA(segments, row){
-          const attrs=[]; if(TRIM(row.pc||'')) attrs.push('pc="'+row.pc+'"'); if(TRIM(row.srs||'')) attrs.push('srs_ant_switch="'+row.srs+'"');
-          const nr = segments.filter(s=>s.kind==='NR').map(s=>{ const dl='N'+s.band+s.dlLetter+'['+s.dlPairs.map(p=>p.bw+'x'+p.mimo).join(',')+']'; const ul=s.ulLetter?(';'+s.ulPairs && s.ulPairs.length? s.ulLetter+'['+(s.ulPairs||[]).map(p=>p.bw+'x'+p.mimo).join(',')+']' : s.ulLetter+'[ ]'):''; return dl+ul; }).join('+');
+          const attrs=[];
+          if(TRIM(row.pc||''))  attrs.push('pc="'+row.pc+'"');
+          if(TRIM(row.srs||'')) attrs.push('srs_ant_switch="'+row.srs+'"');
+          if(TRIM(row.tx||''))  attrs.push('tx_switching="'+row.tx+'"');
+          const nr = segments.filter(s=>s.kind==='NR').map(s=>{
+            if(!s.dlLetter && s.ulLetter){
+              const list=(s.ulPairs||[]).map(p=>p.bw+'x'+p.mimo).join(',');
+              return 'N'+s.band+'_;'+s.ulLetter+'['+list+']';
+            }
+            const dl='N'+s.band+s.dlLetter+'['+s.dlPairs.map(p=>p.bw+'x'+p.mimo).join(',')+']';
+            let ul='';
+            if(s.ulLetter){
+              const list=(s.ulPairs||[]).map(p=>p.bw+'x'+p.mimo).join(',');
+              ul=';'+s.ulLetter+'['+list+']';
+            }
+            return dl+ul;
+          }).join('+');
           return '  <ca_combo'+(attrs.length? ' '+attrs.join(' ') : '')+'>'+nr+'</ca_combo>';
         }
         function buildXMLFromRowsNRCA(rows){
-          const lines=[]; for(const r of rows){ const empty=['nrDl','dlM','bw','nrUl','ulM','pc','srs'].every(k=>!TRIM(r[k]||'')); if(empty) continue; const segs=rowToSegmentsNRCA(r); lines.push(segmentsToSourceNRCA(segs, r)); }
+          const lines=[]; for(const r of rows){
+            const empty=['nrDl','dlM','bw','nrUl','ulM','pc','srs','tx'].every(k=>!TRIM(r[k]||'')); if(empty) continue;
+            const segs=rowToSegmentsNRCA(r); lines.push(segmentsToSourceNRCA(segs, r));
+          }
           return ['<ca_5g_combos>', ...lines, '</ca_5g_combos>'].join('\n');
         }
 
-        // ---------------- Tests ----------------
+        // -------------- 自测 --------------
         const SELF_TESTS_ENDC = [
           { name:'ENDC ex1', input:'B8A[4];A[1]+B41C[2,2]+N3A[50x4];A[50x1]', expect:{ lteDl:'8A+41C', lteDlM:'4+2+2', nrDl:'n3A', nrBw:'50', nrDlM:'4', lteUl:'8A', nrUl:'n3A', lteUlM:'1', nrUlM:'1' }},
           { name:'ENDC ex2 two NR', input:'B3A[4];A[1]+B3A[4]+N7A[50x4];A[50x1]+N78A[100x4]', expect:{ lteDl:'3A+3A', lteDlM:'4+4', nrDl:'n7A+n78A', nrBw:'50+100', nrDlM:'4+4', lteUl:'3A', nrUl:'n7A', lteUlM:'1', nrUlM:'1' }},
           { name:'ENDC ex3 intra-band CA', input:'B7A[4];A[1]+B7A[4]+N78C[100x4,20x4];A[100x1]', expect:{ lteDl:'7A+7A', lteDlM:'4+4', nrDl:'n78C', nrBw:'100+20', nrDlM:'4+4', lteUl:'7A', nrUl:'n78A', lteUlM:'1', nrUlM:'1' }}
         ];
         const SELF_TESTS_NRCA = [
-          { name:'NRCA ex1', input:'<ca_combo>N1A[50x4]+N5A[25x4]+N7A[50x4];A[50x2]</ca_combo>', expect:{ nrDl:'n1A-n5A-n7A', dlM:'4+4+4', bw:'50+25+50', nrUl:'n7A', ulM:'2', pc:'', srs:'' }},
-          { name:'NRCA ex2 multi UL', input:'<ca_combo>N1A[50x4];A[50x1]+N3A[50x4];A[50x1]+N3A[25x4]</ca_combo>', expect:{ nrDl:'n1A-n3A-n3A', dlM:'4+4+4', bw:'50+50+25', nrUl:'n1A-n3A', ulM:'1+1', pc:'', srs:'' }},
-          { name:'NRCA ex3 attrs', input:'<ca_combo pc="1.5" srs_ant_switch="N78:SRS_T1_T2_R4">N7B[40x4,10x4]+N78C[100x4,100x4];A[100x2]</ca_combo>', expect:{ nrDl:'n7B-n78C', dlM:'4+4+4+4', bw:'40+10+100+100', nrUl:'n78A', ulM:'2', pc:'1.5', srs:'N78:SRS_T1_T2_R4' }},
-          { name:'NRCA ex4 multi srs', input:'<ca_combo srs_ant_switch="N40:SRS_T1_R4,N78:SRS_T1_R4" SimulRxTx="N40-N78">N40B[80x4,20x4];A[80x1]+N78C[100x4,100x4];A[100x1]</ca_combo>', expect:{ nrDl:'n40B-n78C', dlM:'4+4+4+4', bw:'80+20+100+100', nrUl:'n40-n78', ulM:'1+1', pc:'', srs:'N40:SRS_T1_R4,N78:SRS_T1_R4' }}
+          { name:'NRCA ex1', input:'<ca_combo>N1A[50x4]+N5A[25x4]+N7A[50x4];A[50x2]</ca_combo>', expect:{ nrDl:'n1A-n5A-n7A', dlM:'4+4+4', bw:'50+25+50', nrUl:'n7A', ulM:'2', pc:'', srs:'', tx:'' }},
+          { name:'NRCA ex2 multi UL', input:'<ca_combo>N1A[50x4];A[50x1]+N3A[50x4];A[50x1]+N3A[25x4]</ca_combo>', expect:{ nrDl:'n1A-n3A-n3A', dlM:'4+4+4', bw:'50+50+25', nrUl:'n1A-n3A', ulM:'1+1', pc:'', srs:'', tx:'' }},
+          { name:'NRCA ex3 attrs', input:'<ca_combo pc="1.5" srs_ant_switch="N78:SRS_T1_T2_R4">N7B[40x4,10x4]+N78C[100x4,100x4];A[100x2]</ca_combo>', expect:{ nrDl:'n7B-n78C', dlM:'4+4+4+4', bw:'40+10+100+100', nrUl:'n78A', ulM:'2', pc:'1.5', srs:'N78:SRS_T1_T2_R4', tx:'' }},
+          { name:'NRCA ex4 srs+tx', input:'<ca_combo srs_ant_switch="N40:SRS_T1_R4,N78:SRS_T1_R4" tx_switching="switchedUL,dualUL">N40B[80x4,20x4];A[80x1]+N78C[100x4,100x4];A[100x1]</ca_combo>', expect:{ nrDl:'n40B-n78C', dlM:'4+4+4+4', bw:'80+20+100+100', nrUl:'n40-n78', ulM:'1+1', pc:'', srs:'N40:SRS_T1_R4,N78:SRS_T1_R4', tx:'switchedUL,dualUL' }},
+          { name:'NRCA SUL ex', input:'<ca_combo pc="2" srs_ant_switch="N79:SRS_T1_R4">N28A[30x2]+N79A[100x4];A[100x1]+N83_;A[30x1]</ca_combo>', expect:{ nrDl:'n28A-n79A', dlM:'2+4', bw:'30+100', nrUl:'n79A-n83A', ulM:'1+1', pc:'2', srs:'N79:SRS_T1_R4', tx:'' }},
         ];
-        function runENDCParseTestsText(){
+        function runENDCParseTestsText(T){
           return SELF_TESTS_ENDC.map(t=>{
             try{
               const row = segmentsToRowENDC(parseENDCInner(t.input));
@@ -401,27 +443,139 @@
             }catch(e){ return '❌ ENDC:'+t.name+' '+String(e&&e.message||e); }
           }).join('\n');
         }
-        function runNRCATestsText(){
+        function runNRCATestsText(T){
           const tmp = SELF_TESTS_NRCA.map(t=>{
             try{
               const xml = '<ca_5g_combos>\n'+t.input+'\n</ca_5g_combos>';
               const rows = extractNRCAs(xml).map(segmentsToRowNRCA);
               const row = rows[0];
-              const pass = row.nrDl===t.expect.nrDl && row.dlM===t.expect.dlM && row.bw===t.expect.bw && row.nrUl===t.expect.nrUl && row.ulM===t.expect.ulM && row.pc===t.expect.pc && row.srs===t.expect.srs;
+              const pass = row.nrDl===t.expect.nrDl && row.dlM===t.expect.dlM && row.bw===t.expect.bw && row.nrUl===t.expect.nrUl && row.ulM===t.expect.ulM && row.pc===t.expect.pc && row.srs===t.expect.srs && row.tx===t.expect.tx;
               return (pass?'✅ ':'❌ ')+'NRCA:'+t.name+(pass?'':(' got='+JSON.stringify(row)+' expect='+JSON.stringify(t.expect)));
             }catch(e){ return '❌ NRCA:'+t.name+' '+String(e&&e.message||e); }
           });
-          // build test
+          // 生成端：tx_switching
           try{
-            const xml = buildXMLFromRowsNRCA([{ nrDl:'n7B-n78C', dlM:'4+4+4+4', bw:'40+10+100+100', nrUl:'n78A', ulM:'2', pc:'1.5', srs:'N78:SRS_T1_T2_R4' }]);
-            const ok = /<ca_5g_combos>[\s\S]*<ca_combo pc="1\.5" srs_ant_switch="N78:SRS_T1_T2_R4">N7B\[40x4,10x4\]\+N78C\[100x4,100x4\];A\[100x2\]<\/ca_combo>[\s\S]*<\/ca_5g_combos>/.test(xml);
-            tmp.push((ok?'✅ ':'❌ ')+'NRCA: build attrs');
-          }catch(e){ tmp.push('❌ NRCA: build attrs '+String(e&&e.message||e)); }
+            const xml = buildXMLFromRowsNRCA([{ nrDl:'n25A-n41C-n66A-n71A', dlM:'4+4+4+4', bw:'45+100+90+45+35', nrUl:'n25A', ulM:'1', pc:'2', srs:'N41:SRS_T1_T2_R4', tx:'switchedUL,dualUL' }]);
+            const ok = /tx_switching="switchedUL,dualUL"/.test(xml);
+            tmp.push((ok?'✅ ':'❌ ')+'NRCA: build tx_switching');
+          }catch(e){ tmp.push('❌ NRCA: build tx_switching '+String(e&&e.message||e)); }
+          // 生成端：SUL
+          try{
+            const xml = buildXMLFromRowsNRCA([{ nrDl:'n28A-n79A', dlM:'2+4', bw:'30+100', nrUl:'n79A-n83A', ulM:'1+1', pc:'2', srs:'N79:SRS_T1_R4', tx:'' }]);
+            const ok = /N83_;A\[/.test(xml);
+            tmp.push((ok?'✅ ':'❌ ')+'NRCA: build SUL (UL-only)');
+          }catch(e){ tmp.push('❌ NRCA: build SUL '+String(e&&e.message||e)); }
           return tmp.join('\n');
         }
-        function runSelfTestsText(T){ return [runENDCParseTestsText(), runNRCATestsText()].join('\n'); }
+        function runSelfTestsText(){ return [runENDCParseTestsText(), runNRCATestsText()].join('\n'); }
 
-        // ---------------- Sample data ----------------
+        // -------------- 汇总 --------------
+        function splitPlusNums(s){ s = String(s||'').trim(); if(!s) return []; return s.split('+').map(x => parseInt(String(x).trim(), 10)).filter(n => !Number.isNaN(n)); }
+        function splitPlusTokensLocal(s){ s = String(s||'').trim(); if(!s) return []; return s.split('+').map(x => String(x).trim()).filter(Boolean); }
+        function splitDashTokensLocal(s){ s = String(s||'').trim(); if(!s) return []; return s.split('-').map(x => String(x).trim()).filter(Boolean); }
+        function bandFromToken(token){
+          token = String(token||'').trim(); if(!token) return '';
+          if(/^n\d+/i.test(token)){ const m = token.match(/^n(\d+)/i); return m ? ('n'+m[1]) : ''; }
+          const m = token.match(/^(\d+)/); return m ? ('B'+m[1]) : '';
+        }
+        function pairLteDl(dlCombo, dlMimo){
+          const toks = splitPlusTokensLocal(dlCombo);
+          const nums = splitPlusNums(dlMimo);
+          const out = []; let p=0;
+          for(const t of toks){
+            const m = t.match(/^(\d+)([A-F])$/i);
+            if(!m) return [];
+            const need = CC_COUNT[m[2].toUpperCase()]||1;
+            const slice = nums.slice(p,p+need);
+            if(slice.length<need) return [];
+            out.push({ band:'B'+m[1], mimo:slice });
+            p += need;
+          }
+          return out;
+        }
+        function expandNRTokensToBands(nrDl){
+          const toks = splitDashTokensLocal(nrDl);
+          const bandsExpanded = [];
+          for(const t of toks){
+            const m = t.match(/^n(\d+)([A-F])$/i);
+            if(!m){ bandsExpanded.push(bandFromToken(t)); continue; }
+            const band = 'n'+m[1];
+            const need = CC_COUNT[m[2].toUpperCase()]||1;
+            for(let i=0;i<need;i++) bandsExpanded.push(band);
+          }
+          return bandsExpanded;
+        }
+        function summarizeLTE(rows, T){
+          if(!rows || !rows.length) return T.sumNothing;
+          let maxSumLayers = 0;
+          let maxCcs = 0;
+          const bands4x4 = new Set();
+          for(const r of rows){
+            const numbers = splitPlusNums(r.dlMimo);
+            const sum = numbers.reduce((a,b)=>a+b,0);
+            if(sum > maxSumLayers) maxSumLayers = sum;
+            if(numbers.length > maxCcs) maxCcs = numbers.length;
+            const pairs = pairLteDl(r.dlCombo, r.dlMimo);
+            for(const p of pairs){
+              const maxv = Math.max(...p.mimo, 0);
+              if(maxv === 4) bands4x4.add(p.band);
+            }
+          }
+          const listBands = Array.from(bands4x4).sort((a,b)=>{
+            const na = parseInt(a.replace(/^\D+/,'')||'0',10);
+            const nb = parseInt(b.replace(/^\D+/,'')||'0',10);
+            if(isNaN(na) || isNaN(nb)) return a.localeCompare(b);
+            return na-nb;
+          }).join(', ');
+          return [
+            T.lt_total_dl_mimo_layers+': '+maxSumLayers,
+            T.lt_max_dl_ccs+': '+maxCcs,
+            T.lt_4x4_bands+': '+(listBands||'-')
+          ].join('\n');
+        }
+        function summarizeENDC(rows, T){
+          if(!rows || !rows.length) return T.sumNothing;
+          let maxSumLayers = 0;
+          for(const r of rows){
+            const a = splitPlusNums(r.lteDlM).reduce((x,y)=>x+y,0);
+            const b = splitPlusNums(r.nrDlM).reduce((x,y)=>x+y,0);
+            const sum = a + b;
+            if(sum > maxSumLayers) maxSumLayers = sum;
+          }
+          return T.ed_total_dl_mimo_layers+': '+maxSumLayers;
+        }
+        function summarizeNRCA(rows, T){
+          if(!rows || !rows.length) return T.sumNothing;
+          let maxBwSum = 0;
+          let maxCcs = 0;
+          const pcPriority = (v)=>{ const f=parseFloat(String(v)); if(Number.isNaN(f))return -1; if(f===1.5)return 4; if(f===2)return 3; if(f===3)return 2; if(f===1)return 1; return 0; };
+          let bestPcVal = null, bestPcScore = -1;
+          const ul2Bands = new Set();
+          const mimo6Bands = new Set();
+          for(const r of rows){
+            const bwNums = splitPlusNums(r.bw);
+            const bwSum = bwNums.reduce((a,b)=>a+b,0);
+            if(bwSum > maxBwSum) maxBwSum = bwSum;
+            const dlMimoNums = splitPlusNums(r.dlM);
+            if(dlMimoNums.length > maxCcs) maxCcs = dlMimoNums.length;
+            if(r.pc!=null && String(r.pc).trim()!==''){ const score=pcPriority(r.pc); if(score>bestPcScore){ bestPcScore=score; bestPcVal=String(r.pc).trim(); } }
+            const ulBandsExpanded = expandNRTokensToBands(r.nrUl||'');
+            const ulMimos = splitPlusNums(r.ulM||'');
+            for(let i=0;i<ulMimos.length && i<ulBandsExpanded.length;i++){ if(ulMimos[i]===2){ ul2Bands.add(ulBandsExpanded[i]); } }
+            const dlBandsExpanded = expandNRTokensToBands(r.nrDl||'');
+            for(let i=0;i<dlMimoNums.length && i<dlBandsExpanded.length;i++){ if(dlMimoNums[i]===6){ mimo6Bands.add(dlBandsExpanded[i]); } }
+          }
+          const fmtSet = (S)=> (S.size? Array.from(S).join(', ') : '-');
+          return [
+            T.nr_total_bw+': '+maxBwSum,
+            T.nr_max_dl_ccs+': '+maxCcs,
+            T.nr_max_pc+': '+(bestPcVal==null? '-' : String(bestPcVal)),
+            T.nr_ul_mimo_band2+': '+fmtSet(ul2Bands),
+            T.nr_6rx_bands+': '+fmtSet(mimo6Bands),
+          ].join('\n');
+        }
+
+        // -------------- 示例数据 --------------
         const SAMPLE_XML = [
           '<ca_4g_combos>',
           '  <ca_combo>B1A[4];A[1]+B1A[4]+B5A[4];A[1]</ca_combo>',
@@ -444,10 +598,12 @@
           '  <ca_combo>N1A[50x4];A[50x1]+N3A[50x4];A[50x1]+N3A[25x4]</ca_combo>',
           '  <ca_combo pc="1.5" srs_ant_switch="N78:SRS_T1_T2_R4">N7B[40x4,10x4]+N78C[100x4,100x4];A[100x2]</ca_combo>',
           '  <ca_combo srs_ant_switch="N40:SRS_T1_R4,N78:SRS_T1_R4" SimulRxTx="N40-N78">N40B[80x4,20x4];A[80x1]+N78C[100x4,100x4];A[100x1]</ca_combo>',
+          '  <ca_combo pc="2" srs_ant_switch="N79:SRS_T1_R4">N28A[30x2]+N79A[100x4];A[100x1]+N83_;A[30x1]</ca_combo>',
+          '  <ca_combo pc="2" srs_ant_switch="N41:SRS_T1_T2_R4" tx_switching="switchedUL,dualUL">N25A[45x4];A[40x1]+N41C[100x4,90x4];A[100x2]+N66A[45x4]+N71A[35x4]</ca_combo>',
           '</ca_5g_combos>'
         ].join('\n');
 
-        // ---------------- App ----------------
+        // -------------- App --------------
         function App(){
           const [lang, setLang] = useState(getInitialLang());
           const T = I18N[lang] || I18N.zh;
@@ -459,7 +615,13 @@
           const [perPage, setPerPage] = useState(10);
           const [editMode, setEditMode] = useState(false);
 
-          // Parse datasets
+          // in-page modal
+          const [modal, setModal] = useState({ open:false, title:'', body:'' });
+
+          // file input ref (vanilla)
+          let fileInputRef = null;
+
+          // 解析到三页
           const lteCombos = useMemo(()=>{
             const re = /<\s*ca_combo[^>]*>([\s\S]*?)<\s*\/\s*ca_combo\s*>/gi;
             const items=[]; let m;
@@ -491,7 +653,11 @@
           }, [editMode, mode, src]);
 
           const baseRows = editMode ? (rowsDraft.length? rowsDraft : (mode==='LTE'? lteCombos : mode==='ENDC'? endcCombos : nrcaCombos)) : (mode==='LTE'? lteCombos : mode==='ENDC'? endcCombos : nrcaCombos);
-          const colKeys = mode==='LTE'? ['dlCombo','dlMimo','ulCombo','ulMimo'] : mode==='ENDC'? ['lteDl','lteDlM','nrDl','nrBw','nrDlM','lteUl','nrUl','lteUlM','nrUlM'] : ['nrDl','dlM','bw','nrUl','ulM','pc','srs'];
+          const colKeys = mode==='LTE'
+            ? ['dlCombo','dlMimo','ulCombo','ulMimo']
+            : mode==='ENDC'
+              ? ['lteDl','lteDlM','nrDl','nrBw','nrDlM','lteUl','nrUl','lteUlM','nrUlM']
+              : ['nrDl','dlM','bw','nrUl','ulM','pc','srs','tx'];
           const filtered = baseRows.filter(r=> colKeys.every(k=> !TRIM((filters[k]||'')) || String(r[k]||'').toLowerCase().includes(String(filters[k]).toLowerCase())) );
           const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
           const displayed = filtered.slice((page-1)*perPage, page*perPage);
@@ -523,158 +689,52 @@
           useEffect(()=>{ setPage(1); }, [perPage]);
           useEffect(()=>{ setPage(1); }, [filters]);
 
-          // ---- helpers for summary ----
-          function splitPlusNums(s){ s = String(s||'').trim(); if(!s) return []; return s.split('+').map(x => parseInt(String(x).trim(), 10)).filter(n => !Number.isNaN(n)); }
-          function splitPlusTokensLocal(s){ s = String(s||'').trim(); if(!s) return []; return s.split('+').map(x => String(x).trim()).filter(Boolean); }
-          function splitDashTokensLocal(s){ s = String(s||'').trim(); if(!s) return []; return s.split('-').map(x => String(x).trim()).filter(Boolean); }
-          function bandFromToken(token){
-            token = String(token||'').trim(); if(!token) return '';
-            if(/^n\d+/i.test(token)){ const m = token.match(/^n(\d+)/i); return m ? ('n'+m[1]) : ''; }
-            const m = token.match(/^(\d+)/); return m ? ('B'+m[1]) : '';
+          // ---- summary actions -> modal ----
+          function openSelfTests(){
+            const text = runSelfTestsText();
+            setModal({ open:true, title: (mode==='LTE'?'SELF TESTS':'SELF TESTS'), body: text });
           }
-          function pairLteDl(dlCombo, dlMimo){
-            const toks = splitPlusTokensLocal(dlCombo);
-            const nums = splitPlusNums(dlMimo);
-            const out = []; let p=0;
-            for(const t of toks){
-              const m = t.match(/^(\d+)([A-F])$/i);
-              if(!m) return [];
-              const need = CC_COUNT[m[2].toUpperCase()]||1;
-              const slice = nums.slice(p,p+need);
-              if(slice.length<need) return [];
-              out.push({ band:'B'+m[1], mimo:slice });
-              p += need;
-            }
-            return out;
-          }
-          function expandNRTokensToBands(nrDl){
-            const toks = splitDashTokensLocal(nrDl);
-            const bandsExpanded = [];
-            for(const t of toks){
-              const m = t.match(/^n(\d+)([A-F])$/i);
-              if(!m){ bandsExpanded.push(bandFromToken(t)); continue; }
-              const band = 'n'+m[1];
-              const need = CC_COUNT[m[2].toUpperCase()]||1;
-              for(let i=0;i<need;i++) bandsExpanded.push(band);
-            }
-            return bandsExpanded;
+          function openSummary(){
+            let text='';
+            if(mode==='LTE') text = summarizeLTE(displayed, I18N[lang]);
+            else if(mode==='ENDC') text = summarizeENDC(displayed, I18N[lang]);
+            else text = summarizeNRCA(displayed, I18N[lang]);
+            const title = (mode==='LTE'? I18N[lang].sumTitleLTE : mode==='ENDC'? I18N[lang].sumTitleENDC : I18N[lang].sumTitleNRCA);
+            setModal({ open:true, title, body: text });
           }
 
-          // --- summaries ---
-          function summarizeLTE(rows, T){
-            if(!rows || !rows.length) return T.sumNothing;
-            let maxSumLayers = 0;
-            let maxCcs = 0;
-            const bands4x4 = new Set();
-
-            for(const r of rows){
-              const numbers = splitPlusNums(r.dlMimo);
-              const sum = numbers.reduce((a,b)=>a+b,0);
-              if(sum > maxSumLayers) maxSumLayers = sum;
-              if(numbers.length > maxCcs) maxCcs = numbers.length;
-
-              const pairs = pairLteDl(r.dlCombo, r.dlMimo);
-              for(const p of pairs){
-                const maxv = Math.max(...p.mimo, 0);
-                if(maxv === 4) bands4x4.add(p.band);
-              }
-            }
-            const listBands = Array.from(bands4x4).sort((a,b)=>{
-              const na = parseInt(a.replace(/^\D+/,'')||'0',10);
-              const nb = parseInt(b.replace(/^\D+/,'')||'0',10);
-              if(isNaN(na) || isNaN(nb)) return a.localeCompare(b);
-              return na-nb;
-            }).join(', ');
-
-            return [
-              T.lt_total_dl_mimo_layers+': '+maxSumLayers,
-              T.lt_max_dl_ccs+': '+maxCcs,
-              T.lt_4x4_bands+': '+(listBands||'-')
-            ].join('\n');
+          // ---- file upload ----
+          function onPickFile(){
+            if(fileInputRef) fileInputRef.click();
+          }
+          function onFileChange(ev){
+            const f = ev.target.files && ev.target.files[0];
+            if(!f) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+              const txt = e.target.result || '';
+              setSrc(String(txt));
+              // 清空 value 以便可重复选择同一文件
+              ev.target.value = '';
+            };
+            reader.readAsText(f);
           }
 
-          function summarizeENDC(rows, T){
-            if(!rows || !rows.length) return T.sumNothing;
-            let maxSumLayers = 0;
-            for(const r of rows){
-              const a = splitPlusNums(r.lteDlM).reduce((x,y)=>x+y,0);
-              const b = splitPlusNums(r.nrDlM).reduce((x,y)=>x+y,0);
-              const sum = a + b;
-              if(sum > maxSumLayers) maxSumLayers = sum;
-            }
-            return T.ed_total_dl_mimo_layers+': '+maxSumLayers;
-          }
-
-          function summarizeNRCA(rows, T){
-            if(!rows || !rows.length) return T.sumNothing;
-            let maxBwSum = 0;
-            let maxCcs = 0;
-            let maxPc = null;
-            const ul2Bands = new Set();
-            const mimo6Bands = new Set();
-
-            for(const r of rows){
-              // total bw support
-              const bwNums = splitPlusNums(r.bw);
-              const bwSum = bwNums.reduce((a,b)=>a+b,0);
-              if(bwSum > maxBwSum) maxBwSum = bwSum;
-
-              // max dl ccs
-              const dlMimoNums = splitPlusNums(r.dlM);
-              if(dlMimoNums.length > maxCcs) maxCcs = dlMimoNums.length;
-
-              // max power class
-              if(r.pc!=null && String(r.pc).trim()!==''){
-                const pc = parseFloat(String(r.pc).trim());
-                if(!Number.isNaN(pc)){
-                  if(maxPc==null || pc > maxPc) maxPc = pc;
-                }
-              }
-
-              // nr ul mimo band（UL MIMO 值==2 的 band）
-              const ulBandsExpanded = expandNRTokensToBands(r.nrUl||'');
-              const ulMimos = splitPlusNums(r.ulM||'');
-              for(let i=0;i<ulMimos.length && i<ulBandsExpanded.length;i++){
-                if(ulMimos[i]===2){ ul2Bands.add(ulBandsExpanded[i]); }
-              }
-
-              // 6rx band（DL MIMO 值==6 的 band）
-              const dlBandsExpanded = expandNRTokensToBands(r.nrDl||'');
-              for(let i=0;i<dlMimoNums.length && i<dlBandsExpanded.length;i++){
-                if(dlMimoNums[i]===6){ mimo6Bands.add(dlBandsExpanded[i]); }
-              }
-            }
-
-            const fmtSet = (S)=> (S.size? Array.from(S).join(', ') : '-');
-            return [
-              T.nr_total_bw+': '+maxBwSum,
-              T.nr_max_dl_ccs+': '+maxCcs,
-              T.nr_max_pc+': '+(maxPc==null? '-' : String(maxPc)),
-              T.nr_ul_mimo_band2+': '+fmtSet(ul2Bands),
-              T.nr_6rx_bands+': '+fmtSet(mimo6Bands),
-            ].join('\n');
-          }
-
-          // Controls bar (glass)
+          // Controls bar
           const ControlsBar = h('div', { className:'mb-3 glass rounded-xl p-2 flex items-center gap-2 shadow-glow' },
-            h('button', {
-              className:'btn px-3 py-1.5 rounded-lg field shadow-glow',
+            h('button', { className:'btn px-3 py-1.5 rounded-lg field shadow-glow',
               onClick: ()=> setEditMode(!editMode)
-            }, editMode? T.exitEdit : T.enterEdit),
-            h('button', { className:'btn px-3 py-1.5 rounded-lg field shadow-glow2', onClick: ()=> alert(runSelfTestsText(T)) }, T.runSelfTests),
-            h('button', { className:'btn px-3 py-1.5 rounded-lg field', onClick: ()=>{
-              let text='';
-              if(mode==='LTE') text = summarizeLTE(filtered, T);
-              else if(mode==='ENDC') text = summarizeENDC(filtered, T);
-              else text = summarizeNRCA(filtered, T);
-              alert( (mode==='LTE'? T.sumTitleLTE : mode==='ENDC'? T.sumTitleENDC : T.sumTitleNRCA) + '\n\n' + text );
-            } }, T.summary),
-            editMode ? h('button', { className:'btn px-3 py-1.5 rounded-lg field', onClick: addBlank20 }, T.add20) : null
+            }, editMode? (I18N[lang].exitEdit) : (I18N[lang].enterEdit)),
+            h('button', { className:'btn px-3 py-1.5 rounded-lg field shadow-glow2', onClick: openSelfTests }, I18N[lang].runSelfTests),
+            h('button', { className:'btn px-3 py-1.5 rounded-lg field', onClick: openSummary }, I18N[lang].summary),
+            editMode ? h('button', { className:'btn px-3 py-1.5 rounded-lg field', onClick: addBlank20 }, I18N[lang].add20) : null,
+            // upload button + hidden input
+            h('button', { className:'btn px-3 py-1.5 rounded-lg field', onClick: onPickFile }, I18N[lang].upload),
+            h('input', { type:'file', accept:'.xml,.txt', className:'hidden', ref: el=> (fileInputRef = el), onChange: onFileChange, 'aria-label': I18N[lang].uploading })
           );
 
-          const isLTE = mode==='LTE';
           const CodeBox = h('textarea', {
-            className:'w-full '+(isLTE? 'h-[80vh] lg:h-[88vh]' : 'h-56')+' p-3 font-mono text-xs rounded-xl field text-white placeholder-white/60 shadow-glow',
+            className:'w-full '+(mode==='LTE'? 'h-[80vh] lg:h-[88vh]' : 'h-56')+' p-3 font-mono text-xs rounded-xl field text-white placeholder-white/60 shadow-glow',
             value: src, onChange: e=> setSrc(e.target.value),
             placeholder:'<ca_4g_combos>…</ca_4g_combos> / <ca_4g_5g_combos>…</ca_4g_5g_combos> / <ca_5g_combos>…</ca_5g_combos>'
           });
@@ -687,14 +747,13 @@
             if(mode==='LTE'){
               return h('thead', null,
                 h('tr', { className:'text-left text-slate-100' },
-                  ThHead(T.thIndex,'w-24'), ThHead(T.thDLCombo), ThHead(T.thDLMIMO), ThHead(T.thULCombo), ThHead(T.thULMIMO)
+                  ThHead(I18N[lang].thIndex,'w-24'), ThHead(I18N[lang].thDLCombo), ThHead(I18N[lang].thDLMIMO), ThHead(I18N[lang].thULCombo), ThHead(I18N[lang].thULMIMO)
                 ),
                 h('tr', null,
-                  ThFilter(h('button', { className:'text-xs underline text-indigo-300', onClick: ()=> setFilters({}) }, T.clearFilters)),
+                  ThFilter(h('button', { className:'text-xs underline text-indigo-300', onClick: ()=> setFilters({}) }, I18N[lang].clearFilters)),
                   ...['dlCombo','dlMimo','ulCombo','ulMimo'].map(k=>
                     ThFilter(h('input', { className:'w-full field px-2 py-1 text-xs rounded-md text-white placeholder-white/60',
-                      value:(filters[k]||''), onChange: e=> setFilters({ ...filters, [k]:e.target.value }),
-                      placeholder: T['ph'+(k==='dlCombo'?'DLCombo':k==='dlMimo'?'DLMIMO':k==='ulCombo'?'ULCombo':'ULMIMO')]||'' }))
+                      value:(filters[k]||''), onChange: e=> setFilters({ ...filters, [k]:e.target.value }), placeholder: '…' }))
                   )
                 )
               );
@@ -702,14 +761,13 @@
             if(mode==='ENDC'){
               return h('thead', null,
                 h('tr', { className:'text-left text-slate-100' },
-                  ThHead('#/Filter','w-24'), ...T.endcHeaders.map(hd=> ThHead(hd))
+                  ThHead('#/Filter','w-24'), ...I18N[lang].endcHeaders.map(hd=> ThHead(hd))
                 ),
                 h('tr', null,
-                  ThFilter(h('button', { className:'text-xs underline text-indigo-300', onClick: ()=> setFilters({}) }, T.clearFilters)),
+                  ThFilter(h('button', { className:'text-xs underline text-indigo-300', onClick: ()=> setFilters({}) }, I18N[lang].clearFilters)),
                   ...['lteDl','lteDlM','nrDl','nrBw','nrDlM','lteUl','nrUl','lteUlM','nrUlM'].map(k=>
                     ThFilter(h('input', { className:'w-full field px-2 py-1 text-xs rounded-md text-white placeholder-white/60',
-                      value:(filters[k]||''), onChange: e=> setFilters({ ...filters, [k]:e.target.value }),
-                      placeholder: ({ lteDl:T.phLTEdl, lteDlM:T.phLTEdlM, nrDl:T.phNRdl, nrBw:T.phNRbw, nrDlM:T.phNRdlM, lteUl:T.phLTEul, nrUl:T.phNRul, lteUlM:T.phLTEulM, nrUlM:T.phNRulM })[k] || '' }))
+                      value:(filters[k]||''), onChange: e=> setFilters({ ...filters, [k]:e.target.value }), placeholder: '…' }))
                   )
                 )
               );
@@ -717,14 +775,14 @@
             // NRCA
             return h('thead', null,
               h('tr', { className:'text-left text-slate-100' },
-                ThHead('#/Filter','w-24'), ...T.nrcaHeaders.map((hd,i)=> ThHead(hd, i===6? 'min-w-[22rem]' : ''))
+                ThHead('#/Filter','w-24'),
+                ...I18N[lang].nrcaHeaders.map((hd,i)=> ThHead(hd, (i===6? 'min-w-[22rem]' : i===7? 'min-w-[14rem]' : '')))
               ),
               h('tr', null,
-                ThFilter(h('button', { className:'text-xs underline text-indigo-300', onClick: ()=> setFilters({}) }, T.clearFilters)),
-                ...['nrDl','dlM','bw','nrUl','ulM','pc','srs'].map(k=>
+                ThFilter(h('button', { className:'text-xs underline text-indigo-300', onClick: ()=> setFilters({}) }, I18N[lang].clearFilters)),
+                ...['nrDl','dlM','bw','nrUl','ulM','pc','srs','tx'].map(k=>
                   ThFilter(h('input', { className:'w-full field px-2 py-1 text-xs rounded-md text-white placeholder-white/60',
-                    value:(filters[k]||''), onChange: e=> setFilters({ ...filters, [k]:e.target.value }),
-                    placeholder: ({ nrDl:T.phNRdl_only, dlM:T.phDLmimo_only, bw:T.phNRbw_only, nrUl:T.phNRul_only, ulM:T.phULmimo_only, pc:T.phPC, srs:T.phSRS })[k] || '' }))
+                    value:(filters[k]||''), onChange: e=> setFilters({ ...filters, [k]:e.target.value }), placeholder: '…' }))
                 )
               )
             );
@@ -745,7 +803,9 @@
                           value: (c[field]||''),
                           onChange: e=> onCellChange(absIndex, field, e.target.value),
                           placeholder: '…'
-                        }) : h('div', { className:'whitespace-pre-wrap break-words px-1' }, h('code', { className:'text-[11px]' }, c[field]||''))
+                        }) : h('div', { className:'px-1' },
+                              h('code', { className:'text-[11px]'+(mode==='NRCA'?' whitespace-nowrap':'') }, c[field]||'')
+                            )
                       )
                     );
                     return h('tr', { key: absIndex, className:'align-top hover:bg-white/5 transition-colors' },
@@ -758,20 +818,21 @@
             ),
             h('div', { className:'p-2 flex items-center justify-between border-t border-white/10 text-sm' },
               h('div', null,
-                h('button', { className:'btn px-2 py-1 field rounded mr-2', disabled: page===1, onClick:()=> setPage(Math.max(1,page-1)) }, T.prevPage),
-                h('button', { className:'btn px-2 py-1 field rounded', disabled: page===totalPages, onClick:()=> setPage(Math.min(totalPages,page+1)) }, T.nextPage)
+                h('button', { className:'btn px-2 py-1 field rounded mr-2', disabled: page===1, onClick:()=> setPage(Math.max(1,page-1)) }, I18N[lang].prevPage),
+                h('button', { className:'btn px-2 py-1 field rounded', disabled: page===totalPages, onClick:()=> setPage(Math.min(totalPages,page+1)) }, I18N[lang].nextPage)
               ),
               h('div', null,
-                h('span', { className:'mr-1 text-slate-400' }, T.perPage),
+                h('span', { className:'mr-1 text-slate-400' }, I18N[lang].perPage),
                 h('select', { className:'field rounded px-1 py-1 bg-transparent text-white', value: perPage, onChange: e=> { setPerPage(parseInt(e.target.value,10)); } },
                   [10,20,50,100].map(n=> h('option', { key:n, value:n, className:'bg-slate-800' }, String(n)))
                 ),
-                h('span', { className:'ml-1 text-slate-400' }, T.rows)
+                h('span', { className:'ml-1 text-slate-400' }, I18N[lang].rows)
               ),
-              h('div', null, T.pageXofY(page, totalPages))
+              h('div', null, I18N[lang].pageXofY(page, totalPages))
             )
           );
 
+          // 布局：LTE 左右；ENDC/NRCA 上下
           const LeftRight = h('div', { className:'max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0' },
             h('div', { className:'flex flex-col min-h-0' }, ControlsBar, CodeBox),
             TableShell('h-[80vh] lg:h-[88vh]')
@@ -782,20 +843,48 @@
 
           const Floater = h('div', { className:'fixed bottom-2 right-2 z-50 flex items-center gap-2' },
             h('div', { className:'glass rounded-md px-1.5 py-0.5 text-[10px] shadow-glow' },
-              h('button', { className:'px-1 rounded btn '+(mode==='LTE'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setMode('LTE') }, T.modeLTE),
+              h('button', { className:'px-1 rounded btn '+(mode==='LTE'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setMode('LTE') }, I18N[lang].modeLTE),
               h('span', { className:'text-slate-400 mx-1' }, '|'),
-              h('button', { className:'px-1 rounded btn '+(mode==='ENDC'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setMode('ENDC') }, T.modeENDC),
+              h('button', { className:'px-1 rounded btn '+(mode==='ENDC'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setMode('ENDC') }, I18N[lang].modeENDC),
               h('span', { className:'text-slate-400 mx-1' }, '|'),
-              h('button', { className:'px-1 rounded btn '+(mode==='NRCA'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setMode('NRCA') }, T.modeNRCA)
+              h('button', { className:'px-1 rounded btn '+(mode==='NRCA'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setMode('NRCA') }, I18N[lang].modeNRCA)
             ),
             h('div', { className:'glass rounded-md px-1.5 py-0.5 text-[10px] shadow-glow' },
-              h('button', { className:'px-1 rounded btn '+(lang==='zh'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setLang('zh') }, I18N.zh.btnLangZh),
+              h('button', { className:'px-1 rounded btn '+(lang==='zh'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setLang('zh') }, '中文'),
               h('span', { className:'text-slate-400 mx-1' }, '|'),
-              h('button', { className:'px-1 rounded btn '+(lang==='en'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setLang('en') }, I18N.en.btnLangEn)
+              h('button', { className:'px-1 rounded btn '+(lang==='en'?'bg-white/20 text-white':'text-slate-200'), onClick: ()=> setLang('en') }, 'EN')
             )
           );
 
-          return h(React.Fragment, null, (mode==='LTE'? LeftRight : TopBottom), Floater);
+          // 站内弹窗
+          function Modal({open, title, body, onClose}){
+            if(!open) return null;
+            function copy(){
+              try{
+                navigator.clipboard.writeText(String(body||''));
+                alert((I18N[lang]||I18N.zh).copied);
+              }catch(_){}
+            }
+            return h('div', { className:'fixed inset-0 z-[60] flex items-center justify-center' },
+              h('div', { className:'absolute inset-0 bg-black/60 backdrop-blur-sm', onClick:onClose }),
+              h('div', { className:'relative z-10 w-[92vw] max-w-3xl max-h-[80vh] glass rounded-xl shadow-glow p-4 flex flex-col' },
+                h('div', { className:'flex items-center justify-between mb-2' },
+                  h('div', { className:'text-lg font-semibold' }, title||''),
+                  h('div', { className:'flex items-center gap-2' },
+                    h('button', { className:'btn field rounded px-2 py-1 text-xs', onClick: copy }, (I18N[lang]||I18N.zh).modalCopy),
+                    h('button', { className:'btn field rounded px-2 py-1 text-xs', onClick: onClose }, (I18N[lang]||I18N.zh).modalClose),
+                  )
+                ),
+                h('pre', { className:'flex-1 overflow-auto text-xs whitespace-pre-wrap leading-5 p-3 field rounded' }, String(body||''))
+              )
+            );
+          }
+
+          return h(React.Fragment, null,
+            (mode==='LTE'? LeftRight : TopBottom),
+            Floater,
+            h(Modal, { open:modal.open, title:modal.title, body:modal.body, onClose:()=> setModal({open:false, title:'', body:''}) })
+          );
         }
 
         ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
